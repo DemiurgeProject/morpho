@@ -1,6 +1,7 @@
 (ns morpho.core)
 
 (require '[clojure.core.match :refer [match]])
+(use 'clojure.walk)
 
 (defn rule
   "Constructs a rule. The first argument is predecessor and the second is successor.
@@ -72,8 +73,73 @@
                          nils))))
         group))))
 
+; (defn choose-rule
+;   "Takes a seq of rules (for a given priority) and chooses one of the rules."
+;   [rule-set]
+;   (let [rules-with-shifted-probs (loop [offset 0 traversed [] upcomming rule-set]
+;                                    (if (empty? upcomming)
+;                                      traversed
+;                                      (let [current (first upcomming)
+;                                            current-prob (get-prob current)
+;                                            new-prob (+ current-prob offset)]
+;                                        (recur new-prob (conj traversed (set-prob current new-prob)) (rest upcomming)))))
+;         max-prob (apply max (map get-prob rules-with-shifted-probs))
+;         r (rand max-prob)]
+;     (println rules-with-shifted-probs)
+;     (first
+;       (sort-by get-prob
+;                (filter #(<= (get-prob %) r)
+;                        rules-with-shifted-probs)))))
+
+;TODO make choose-rule choose according to the probs
+(defn choose-rule
+  ""
+  [rule-set]
+  (rand-nth rule-set))
+
+(defmacro match-with-symbol-on-nth-pos
+  ""
+  [pos expression]
+  )
+
+(defmacro pattern
+  ""
+  [n predecessor]
+  (vec
+    (concat (repeat n '_)
+            predecessor
+            '(& r))))
+
+; (defn pat
+;   [n predecessor]
+;   (vec))
+
+(defmacro my-match
+  ""
+  [state predecessor]
+  (let [diff (- (count state)
+                (count predecessor))]
+    (conj (concat
+            (apply concat
+                   (for [i (range (inc diff))]
+                     (list [(list (list 'pattern i predecessor) :seq)] i)))
+            '(:else :no-match))
+          [state]
+          :to-be-changed)))
+
+;TODO find out how to fix the awful mess with my-match needing this to work
+(defmacro match-all
+  [state predecessor]
+  `(eval
+     (conj
+       (rest (macroexpand-all
+               '(my-match ~state ~predecessor)))
+       `match)))
+
 (defn generate
   ""
   [axiom rule-set]
-  )
+  (if (validate-correctness rule-set)
+    ()
+    (throw (Exception. "The rule-set is not correct: the sum of probabilities is not 100%"))))
 
