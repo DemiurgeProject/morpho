@@ -5,7 +5,7 @@
 
 (defn rule
   "Constructs a rule. The first argument is predecessor and the second is successor.
-  Predecessor is a vertor with three values: nil or some symbols, a non-terminal symbol, nil or some symbols.
+  Predecessor is a vector with three values: nil or some symbols, a non-terminal symbol, nil or some symbols.
   Guard, probability and priority are optional
   and should be provided as a key-value pairs at the end of the argument list
   as :guard, :prob and :priority correspondingly. The default values are:
@@ -111,7 +111,7 @@
   (let [pattern-len (count pattern)
         state-len (count state)
         diff (- state-len pattern-len)]
-    (if (<= pattern-len state-len)
+    (if-not (neg? diff)
       (first
         (for [i (range (inc diff))
               :when (= pattern
@@ -155,12 +155,12 @@
      (if (empty? (filter string? state))
        state
        (let [matches-state? (partial matches? state)
-             rule (first
+             rule (choose-rule
                     (filter matches-state?
                             (get rules priority)))]
          (if (not (nil? rule))
            (recur (new-state state rule) max-priority)
            (if (= priority 0)
-             '(:no-rule-matches-error state)
+             (list :no-rule-matches-error state)
              (recur state (dec priority)))))))))
 
