@@ -3,9 +3,11 @@
 ; (require '[clojure.core.match :refer [match]])
 ; (use 'clojure.walk)
 
+;TODO: guards don't work, I think - check this
+
 (defn rule
   "Constructs a rule. The first argument is predecessor and the second is successor.
-  Predecessor is a vector with three values: nil or some symbols, a non-terminal symbol, nil or some symbols.
+  Predecessor is a vector with symbols (at least one non-terminal)
   Guard, probability and priority are optional
   and should be provided as a key-value pairs at the end of the argument list
   as :guard, :prob and :priority correspondingly. The default values are:
@@ -39,6 +41,11 @@
   [rule-set]
   (group-by get-priority rule-set))
 
+(defn group-by-predecossor
+  "Groups a rule-set by the predecessor of rules"
+  [rule-set]
+  (group-by get-predecessor rule-set))
+
 (defn validate-correctness
   "Checks if the sum of probabilities of rules in each priority group is 100%
   or whether nil probs can be set so that the sum is 100%."
@@ -59,12 +66,13 @@
 
 (defn set-empty-probs
   "Sets the probabilites of rules with nil values for probability.
-  The sum of the probabilities of rules in each priority-group is 100.
+  The sum of the probabilities of rules with same predecessor in each priority-group is 100.
   The function returns the rules grouped by priority."
   [rule-set]
-  (apply merge
+  (apply merge-with concat
          (let [groups-by-priority (group-by-priority rule-set)]
-           (for [group (vals groups-by-priority) ; TODO check if this sorting really works
+           (for [priority-group (vals groups-by-priority) ; TODO check if this sorting really works
+                 group (vals (group-by-predecossor priority-group))
                  :let [groups-by-prob-type (group-by #(nil? (get-prob %))
                                                      group)
                        nils (get groups-by-prob-type true)
@@ -81,29 +89,23 @@
                            value))
                group)))))
 
-; (defn choose-rule
-;   "Takes a seq of rules (for a given priority) and chooses one of the rules."
-;   [rule-set]
-;   (let [rules-with-shifted-probs (loop [offset 0 traversed [] upcomming rule-set]
-;                                    (if (empty? upcomming)
-;                                      traversed
-;                                      (let [current (first upcomming)
-;                                            current-prob (get-prob current)
-;                                            new-prob (+ current-prob offset)]
-;                                        (recur new-prob (conj traversed (set-prob current new-prob)) (rest upcomming)))))
-;         max-prob (apply max (map get-prob rules-with-shifted-probs))
-;         r (rand max-prob)]
-;     (println rules-with-shifted-probs)
-;     (first
-;       (sort-by get-prob
-;                (filter #(<= (get-prob %) r)
-;                        rules-with-shifted-probs)))))
+(defn in-range?
+  "checks if number is in [start; end)"
+  [number start end]
+  (and (<= start number)
+       (< number end)))
 
-;TODO make choose-rule choose according to the probs
 (defn choose-rule
-  ""
+  "chooses a rule from the rules in a priority group based on their probabilities"
   [rule-set]
-  (rand-nth rule-set))
+  (let [dice (rand 100)]
+    (loop [offset 0
+           [current-rule & rules] rule-set]
+      (let [current-prob (get-prob current-rule)
+            end (+ current-prob offset)]
+      (if (in-range? dice offset end)
+        current-rule
+        (recur end rules))))))
 
 (defn match
   ""
