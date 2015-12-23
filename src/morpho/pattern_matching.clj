@@ -72,7 +72,18 @@
          index)))
 
 (defn create-index
-  "used to create the end pattern index structure"
+  "Used to create the end pattern index structure. It takes the pattern as an argument. Example pattern is:
+   _____________
+  | x |     | z |
+  |---|  a  |---|
+  | y |     |   |
+   ‾‾‾‾‾‾‾‾‾‾‾‾‾
+  will be written as [[[:x] [:y]] :a [[:z] [nil]]].
+  (vector of :keywords or \"strings\" will be a line with those things as columns, but if they are in brackets, they will be rows)
+  we interpted nil as *empty space*
+  The result of the function for this input is:
+  ([[[0 0]] :a] [[[-1 0] [0 0] [0 0]] :x] [[[-1 0] [0 1] [0 0]] :y] [[[1 0] [0 0] [0 0]] :z])
+  On first position is the root. The other pairs are of the type [[<position relative to the root cell> <list of inner positions>] <value>]"
   [pattern]
   (->> (build-pattern-index pattern)
        (partition 2)
@@ -81,9 +92,9 @@
        (normalize-root)))
 
 
-; (defn match
-;   ""
-;   [state pattern]
-;   (let [pattern-root (find-pattern-root pattern)]
-;   (loop [substate state]
-;     ))
+(defn match
+  ""
+  [state pattern]
+  (let [pattern-root (find-root pattern)]
+  (loop [substate state]
+    )))
