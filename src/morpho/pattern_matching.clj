@@ -2,6 +2,25 @@
 
 ; Defines 2D pattern matching of irregular rectangular grids.
 
+; Here's how patterns are being constructed:
+;   If all elements of a vector are vectors themselves, then they form a column.
+;     Example:
+;                  ___
+;                 | a |
+;                  ---
+;     the pattern | b |  will be encoded as [[:a] [:b] [:c]]
+;                  ---
+;                 | c |
+;                  ---
+;
+;   Otherwise, they form a row.
+;     Example:
+;                  ___________
+;                 |   | b |   |
+;     the pattern | a |---| c | will be encoded as [:a [[:b] [:d]] :c]
+;                 |   | d |   |
+;                  -----------
+
 (defn indexes-of
   "gets indexes of all occurances of e in coll"
   [e coll]
@@ -41,10 +60,10 @@
      (vector path pattern)
      (let [by-rows (every? coll? pattern)]
        (mapcat #(build-pattern-index %1 (conj path (if by-rows
-                                                  [0 %2]
-                                                  [%2 0])))
-            pattern
-            (range (count pattern)))))))
+                                                     [0 %2]
+                                                     [%2 0])))
+               pattern
+               (range (count pattern)))))))
 
 (defn find-root
   "finds the root cell: the cell that is minimally nested"
@@ -92,9 +111,37 @@
        (normalize-root)))
 
 
+(defn height
+  "returns the number of top-level rows in the pattern"
+  [pattern]
+  (if (= (count pattern)
+         (count (filter vector? pattern))
+         (count pattern)
+         1)))
+
+(defn width
+  "returns the number of top-level columns in the pattern"
+  [pattern]
+  (->> (filter vector? pattern)
+       (map count)
+       (max)))
+
+(defn match-block
+  "Tests whether a given block of the state is matching against the pattern.
+  It will match if they are the same (with the additional rule that
+  anything will match against a nil element of the pattern)."
+  [block pattern]
+  (if (and (coll? pattern)
+           (coll? block)
+           (= (count pattern)
+              (count block)))
+    (not-any? false?
+              (map match-block pattern block))
+    (or (= pattern nil)
+        (= pattern block))))
+
 (defn match
   ""
   [state pattern]
-  (let [pattern-root (find-root pattern)]
-  (loop [substate state]
-    )))
+  (let [height (height pattern)
+        width (width pattern)]))
