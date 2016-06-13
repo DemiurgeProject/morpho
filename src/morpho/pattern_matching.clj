@@ -231,7 +231,7 @@
   ""
   [pattern n]
   (if (= n 1)
-    pattern
+    [pattern]
     (->> (repeat
            (if (coll? pattern)
              pattern
@@ -242,17 +242,19 @@
 (defn make-row
   ""
   [pattern n]
-  (if (= n 1)
-    pattern
     (->> (repeat pattern)
          (take n)
-         (vec))))
+         (vec)))
+
+(defn force-concat
+  [& xs]
+  (mapcat #(if (coll? %) % [%]) xs))
 
 (defn merge-grids-horizontally
   ""
   [grids]
   (vec
-    (apply (partial map (comp vec concat))
+    (apply (partial map (comp vec force-concat))
            grids)))
 
 (defn merge-grids-vertically
@@ -260,12 +262,6 @@
   [grids]
   (vec
     (apply concat grids)))
-
-(defn is-grid?
-  ""
-  [x]
-  (and (coll? x)
-       (coll? (first x))))
 
 (defun ^:dynamic normalize-pattern
   ""
@@ -286,10 +282,6 @@
                                              (* y (height %))
                                              target)
                          (pattern :elems))]
-         (match [(pattern :align) (is-grid? inners)]
-                [:hor true] (merge-grids-horizontally inners)
-                [:ver true] (merge-grids-vertically inners)
-                [:hor false] (vec inners)
-                [:ver false] (vec
-                               (map vector inners))))))))
-
+         (case (pattern :align)
+               :hor (merge-grids-horizontally inners)
+               :ver (merge-grids-vertically inners)))))))
